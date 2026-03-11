@@ -358,7 +358,7 @@ const Signup = ({onCustomizeHeader}: SignupProps) => {
 
     useEffect(() => {
         if (SiteName) {
-            document.title = SiteName;
+            document.title = `${SiteName} | Sign up`;
         }
     }, [SiteName]);
 

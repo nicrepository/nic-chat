@@ -1,0 +1,84 @@
+.nic-voice-player {
+    display: flex;
+    align-items: center;
+    background-color: var(--button-bg); // Usa a cor principal do tema do usuário
+    color: var(--button-color);
+    padding: 8px 14px;
+    border-radius: 20px; // Formato de "pílula"
+    width: 300px;
+    max-width: 100%;
+    margin-top: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+
+    .nic-voice-play-btn {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: transparent;
+        border: none;
+        color: var(--button-color);
+        cursor: pointer;
+        padding: 0;
+        margin-right: 12px;
+        transition: transform 0.1s;
+
+        &:hover {
+            transform: scale(1.1);
+        }
+    }
+
+    .nic-voice-timeline {
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        margin-right: 12px;
+
+        .nic-voice-scrubber {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--button-color); // Pinta a barra do input range
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+
+            &::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 12px;
+                height: 12px;
+                background: var(--button-color);
+                border-radius: 50%;
+            }
+        }
+    }
+
+    .nic-voice-timer {
+        font-size: 11px;
+        font-family: 'Open Sans', sans-serif;
+        font-weight: 600;
+        min-width: 70px;
+        text-align: right;
+    }
+    .nic-voice-download-btn {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-left: 12px;
+        padding: 4px;
+        
+        /* O !important bloqueia o tema global de links do Mattermost */
+        color: var(--button-color) !important; 
+        text-decoration: none !important;      
+        transition: transform 0.1s;
+
+        svg {
+            fill: currentColor; // Garante que o ícone acompanhe a cor branca
+        }
+
+        &:hover {
+            transform: scale(1.1);
+            opacity: 0.8;
+        }
+    }
+}

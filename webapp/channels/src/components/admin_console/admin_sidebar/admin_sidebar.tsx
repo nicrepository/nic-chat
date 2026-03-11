@@ -8,8 +8,6 @@ import Scrollbars from 'react-custom-scrollbars';
 import {FormattedMessage, injectIntl} from 'react-intl';
 import type {IntlShape} from 'react-intl';
 
-import type {PluginRedux} from '@mattermost/types/plugins';
-
 import AdminSidebarCategory from 'components/admin_console/admin_sidebar/admin_sidebar_category';
 import AdminSidebarSection from 'components/admin_console/admin_sidebar/admin_sidebar_section';
 import AdminSidebarHeader from 'components/admin_console/admin_sidebar_header';
@@ -34,6 +32,11 @@ type State = {
     sections: string[] | null;
     filter: string;
 }
+
+type PluginRedux = {
+    id: string;
+    name: string;
+};
 
 const renderScrollView = (props: Props) => (
     <div
@@ -134,12 +137,9 @@ class AdminSidebar extends React.PureComponent<Props, State> {
     };
 
     updateTitle = () => {
-        let currentSiteName = '';
-        if (this.props.siteName) {
-            currentSiteName = ' - ' + this.props.siteName;
-        }
-
-        document.title = this.props.intl.formatMessage({id: 'sidebar_right_menu.console', defaultMessage: 'System Console'}) + currentSiteName;
+        const siteName = this.props.siteName || 'Nic-Labs';
+        const pageName = this.props.intl.formatMessage({id: 'sidebar_right_menu.console', defaultMessage: 'System Console'});
+        document.title = `${siteName} | ${pageName}`;
     };
 
     visibleSections = () => {

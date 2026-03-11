@@ -21,6 +21,8 @@ import {trackEvent} from 'actions/telemetry_actions';
 import AutoHeightSwitcher, {AutoHeightSlots} from 'components/common/auto_height_switcher';
 import EditPost from 'components/edit_post';
 import FileAttachmentListContainer from 'components/file_attachment_list';
+// INJEÇÃO NIC-CHAT: Player de voz customizado
+import NicVoicePlayer from 'components/nic_voice_player/nic_voice_player';
 import MessageWithAdditionalContent from 'components/message_with_additional_content';
 import PriorityLabel from 'components/post_priority/post_priority_label';
 import PostProfilePicture from 'components/post_profile_picture';
@@ -644,13 +646,22 @@ const PostComponent = (props: Props): JSX.Element => {
                                 slot2={<EditPost/>}
                                 onTransitionEnd={() => document.dispatchEvent(new Event(AppEvents.FOCUS_EDIT_TEXTBOX))}
                             />
-                            {post.file_ids && post.file_ids.length > 0 &&
-                            <FileAttachmentListContainer
-                                post={post}
-                                compactDisplay={props.compactDisplay}
-                                handleFileDropdownOpened={handleFileDropdownOpened}
-                            />
-                            }
+                            {/* INJEÇÃO NIC-CHAT: Interceptação do Balão de Áudio */}
+                            {post.file_ids && post.file_ids.length > 0 && (
+                                post.props && post.props.nic_chat_type === 'voice_message' ? (
+                                    <div className="nic-voice-message-wrapper" style={{ marginTop: '8px', marginBottom: '8px' }}>
+                                        <NicVoicePlayer fileId={post.file_ids[0]}
+                                        durationProp={post.props.nic_voice_duration}
+                                    />
+                                    </div>
+                                ) : (
+                                    <FileAttachmentListContainer
+                                        post={post}
+                                        compactDisplay={props.compactDisplay}
+                                        handleFileDropdownOpened={handleFileDropdownOpened}
+                                    />
+                                )
+                            )}
                             <div className='post__body-reactions-acks'>
                                 {props.isPostAcknowledgementsEnabled && post.metadata?.priority?.requested_ack && (
                                     <PostAcknowledgements

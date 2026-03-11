@@ -5,9 +5,6 @@ import React from 'react';
 import {injectIntl} from 'react-intl';
 import type {IntlShape} from 'react-intl';
 
-import type {Channel} from '@mattermost/types/channels';
-import type {Team} from '@mattermost/types/teams';
-
 import {basicUnreadMeta} from 'mattermost-redux/selectors/entities/channels';
 import type {BasicUnreadStatus} from 'mattermost-redux/selectors/entities/channels';
 import {ensureString} from 'mattermost-redux/utils/post_utils';
@@ -31,6 +28,16 @@ import {Constants} from 'utils/constants';
 import DesktopApp from 'utils/desktop_api';
 import * as UserAgent from 'utils/user_agent';
 
+type Channel = {
+    id?: string;
+    display_name: string;
+    type?: string;
+};
+
+type Team = {
+    display_name: string;
+};
+
 enum BadgeStatus {
     Mention = 'Mention',
     Unread = 'Unread',
@@ -43,7 +50,7 @@ type Props = {
     siteName?: string;
     currentChannel?: Channel;
     currentTeam?: Team;
-    currentTeammate: Channel | null;
+    currentTeammate: {display_name: string} | null;
     inGlobalThreads: boolean;
     inDrafts: boolean;
 };
@@ -107,7 +114,7 @@ export class UnreadsStatusHandlerClass extends React.PureComponent<Props> {
                     currentChannelName = currentTeammate.display_name;
                 }
             }
-            document.title = `${mentionTitle}${unreadTitle}${currentChannelName} - ${currentTeam.display_name} ${currentSiteName}`;
+            document.title = `${mentionTitle}${unreadTitle}${currentSiteName} | ${currentChannelName}`;
         } else if (currentTeam && inGlobalThreads) {
             document.title = formatMessage({
                 id: 'globalThreads.title',
@@ -127,7 +134,10 @@ export class UnreadsStatusHandlerClass extends React.PureComponent<Props> {
                 siteName: currentSiteName,
             });
         } else {
-            document.title = formatMessage({id: 'sidebar.team_select', defaultMessage: '{siteName} - Join a team'}, {siteName: currentSiteName || 'Mattermost'});
+            document.title = formatMessage(
+                {id: 'sidebar.team_select', defaultMessage: '{siteName} | Join a team'},
+                {siteName: currentSiteName || 'Nic-Labs'},
+            );
         }
     };
 

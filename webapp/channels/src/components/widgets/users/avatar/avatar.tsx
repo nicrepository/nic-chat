@@ -92,4 +92,5 @@ const Avatar = ({
         />
     );
 };
+
 export default memo(Avatar);

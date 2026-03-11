@@ -1,0 +1,26 @@
+name: Deploy Produção - Projeto 2
+
+on:
+  push:
+    branches:
+      - main # Dispara sempre que houver push na main
+
+jobs:
+  deploy:
+    runs-on: self-hosted # Usa o servidor da Nic-Labs
+
+    steps:
+      - name: Atualizar o código-fonte
+        run: |
+          # Mude para o caminho correto onde o projeto ficará no servidor
+          cd /opt/nic-labs/core/mattermost-custom
+          git reset --hard
+          git pull origin main
+
+      - name: Reconstruir e reiniciar contêineres
+        run: |
+          cd /opt/nic-labs/core
+          # O nome correto do serviço no docker-compose é "mattermost"
+          docker compose build --no-cache mattermost
+          docker compose up -d mattermost
+          docker image prune -f

@@ -43,7 +43,8 @@ export default class EmojiPage extends React.PureComponent<Props> {
     }
 
     updateTitle = () => {
-        document.title = Utils.localizeMessage('custom_emoji.header', 'Custom Emoji') + ' - ' + this.props.teamDisplayName + ' ' + this.props.siteName;
+        const siteName = this.props.siteName || 'Nic-Labs';
+        document.title = `${siteName} | ${Utils.localizeMessage('custom_emoji.header', 'Custom Emoji')}`;
     };
 
     componentDidUpdate(prevProps: Props) {

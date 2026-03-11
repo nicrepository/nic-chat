@@ -23,15 +23,15 @@ const Header = ({alternateLink, backButtonURL, onBackButtonClick}: HeaderProps) 
     const {SiteName} = useSelector(getConfig);
     const license = useSelector(getLicense);
 
-    const ariaLabel = SiteName || 'Mattermost';
+    const ariaLabel = SiteName || 'Nic-Labs';
 
     let freeBanner = null;
     if (license.IsLicensed === 'false') {
-        freeBanner = <><Logo/><span className='freeBadge'>{'FREE EDITION'}</span></>;
+        freeBanner = <><Logo/></>;
     }
 
     let title: React.ReactNode = SiteName;
-    if (title === 'Mattermost') {
+    if (title === 'Nic-Labs') {
         if (freeBanner) {
             title = '';
         } else {

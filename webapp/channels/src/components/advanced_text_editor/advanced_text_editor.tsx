@@ -12,6 +12,8 @@ import type {Emoji} from '@mattermost/types/emojis';
 import type {ServerError} from '@mattermost/types/errors';
 import type {FileInfo} from '@mattermost/types/files';
 
+import {Client4} from 'mattermost-redux/client';
+
 import {emitShortcutReactToLastPostFrom} from 'actions/post_actions';
 import LocalStorageStore from 'stores/local_storage_store';
 
@@ -201,6 +203,13 @@ const AdvanceTextEditor = ({
 
     const isNonFormattedPaste = useRef(false);
     const timeoutId = useRef<number>();
+
+    // Injeção Nic-Chat: Estados do Gravador de Áudio
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingTime, setRecordingTime] = useState(0);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<BlobPart[]>([]);
+    const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const dispatch = useDispatch();
 
@@ -591,6 +600,126 @@ const AdvanceTextEditor = ({
         }
     };
 
+    // Injeção Nic-Chat: Controle do Microfone
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunksRef.current.push(event.data);
+                }
+            };
+
+            mediaRecorder.start(250);
+            setIsRecording(true);
+            setRecordingTime(0);
+
+            // Inicia o cronômetro visual
+            timerIntervalRef.current = setInterval(() => {
+                setRecordingTime((prev) => prev + 1);
+            }, 1000);
+
+        } catch (err) {
+            console.error("Nic-Labs InfraSec: Acesso ao microfone negado ou dispositivo indisponível.", err);
+            // Aqui você pode disparar um handlePostError nativo do Mattermost se quiser
+        }
+    };
+
+    const stopRecordingAndSend = async () => {
+        if (mediaRecorderRef.current && isRecording) {
+            
+            // 1. O evento onstop é transformado em assíncrono para suportar a rede
+            mediaRecorderRef.current.onstop = async () => {
+                
+                // Empacotamento: Conversão dos blocos de RAM para um Blob nativo
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                
+                // Gestão de Hardware: Corta o acesso ao microfone imediatamente
+                mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
+                
+                try {
+                    // Prepara o objeto File simulando um upload padrão
+                    const fileName = `nic_voice_${Date.now()}.webm`;
+                    const file = new File([audioBlob], fileName, { type: 'audio/webm' });
+                    
+                    const formData = new FormData();
+                    formData.append('files', file);
+                    formData.append('channel_id', channelId);
+                    
+                    // Requisito estrito da API: client_ids para rastreio local do upload
+                    const clientId = 'uid_' + Date.now();
+                    formData.append('client_ids', clientId); 
+
+                    // 2. Upload Seguro: O Client4 embute automaticamente os cookies de sessão e CSRF
+                    const uploadRes = await Client4.uploadFile(formData);
+                    
+                    // Extrai o ID definitivo gerado pelo banco de dados (PostgreSQL)
+                    const fileId = uploadRes.file_infos[0].id;
+
+                    // 3. A Flag de Engenharia: Construção do payload da mensagem
+                    const post = {
+                        channel_id: channelId,
+                        root_id: postId || '', // Suporte automático a respostas em Threads
+                        message: '', // Áudios não necessitam de corpo de texto
+                        file_ids: [fileId],
+                        props: {
+                            nic_chat_type: 'voice_message', // Marcador crítico para a Fase 3
+                            nic_voice_duration: recordingTime // Salva a duração real do áudio no BD
+                        }
+                    };
+
+                    // Disparo final para a API criar a postagem na timeline
+                    await Client4.createPost(post);
+
+                } catch (error) {
+                    console.error("Falha de rede ou rejeição da API no upload do áudio:", error);
+                    
+                    // Utiliza o hook nativo do componente para exibir erros na interface
+                    handlePostError(
+                        <div style={{color: 'red'}}>
+                            Falha ao enviar áudio. Verifique a conexão com o servidor.
+                        </div>
+                    );
+                } finally {
+                    // Limpeza absoluta da máquina de estados e da interface
+                    setIsRecording(false);
+                    setRecordingTime(0);
+                    audioChunksRef.current = [];
+                    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+                }
+            };
+            
+            // Invoca o encerramento do gravador, o que dispara o bloco acima
+            mediaRecorderRef.current.stop();
+        }
+    };
+
+    const cancelRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            // Apenas para a gravação e descarta os chunks sem chamar o upload
+            mediaRecorderRef.current.onstop = () => {
+                mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
+            };
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            setRecordingTime(0);
+            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+            audioChunksRef.current = [];
+        }
+    };
+    
+    // Helper para formatar o timer de 0 para 00:00
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const secs = (seconds % 60).toString().padStart(2, '0');
+        return `${mins}:${secs}`;
+    };
+
     useEffect(() => {
         function onPaste(event: ClipboardEvent) {
             pasteHandler(event, location, message, isNonFormattedPaste.current, caretPosition);
@@ -683,34 +812,50 @@ const AdvanceTextEditor = ({
                         className='AdvancedTextEditor__cell a11y__region'
                     >
                         {labels}
-                        <Textbox
-                            hasLabels={Boolean(labels)}
-                            suggestionList={location === Locations.RHS_COMMENT ? RhsSuggestionList : SuggestionList}
-                            onChange={handleChange}
-                            onKeyPress={postMsgKeyPress}
-                            onKeyDown={handleKeyDown}
-                            onMouseUp={handleMouseUpKeyUp}
-                            onKeyUp={handleMouseUpKeyUp}
-                            onComposition={emitTypingEvent}
-                            onHeightChange={handleHeightChange}
-                            handlePostError={handlePostError}
-                            value={messageValue}
-                            onBlur={handleBlur}
-                            onFocus={handleFocus}
-                            emojiEnabled={enableEmojiPicker}
-                            createMessage={createMessage}
-                            channelId={channelId}
-                            id={textboxId}
-                            ref={textboxRef!}
-                            disabled={readOnlyChannel}
-                            characterLimit={maxPostSize}
-                            preview={shouldShowPreview}
-                            badConnection={badConnection}
-                            useChannelMentions={useChannelMentions}
-                            rootId={postId}
-                            onWidthChange={handleWidthChange}
-                        />
+                        
+                        {/* INJEÇÃO NIC-CHAT: Condicional de Tela */}
+                        {isRecording ? (
+                            <div className="nic-voice-recording-container">
+                                <span className="pulsing-red-dot"></span>
+                                <span className="recording-timer">{formatTime(recordingTime)} Gravando áudio...</span>
+                                <button className="btn-cancel" onClick={cancelRecording}>Cancelar</button>
+                                <button className="btn-send" onClick={stopRecordingAndSend}>Enviar</button>
+                            </div>
+                        ) : (
+                            <>
+                                <Textbox
+                                    hasLabels={Boolean(labels)}
+                                    suggestionList={location === Locations.RHS_COMMENT ? RhsSuggestionList : SuggestionList}
+                                    onChange={handleChange}
+                                    onKeyPress={postMsgKeyPress}
+                                    onKeyDown={handleKeyDown}
+                                    onMouseUp={handleMouseUpKeyUp}
+                                    onKeyUp={handleMouseUpKeyUp}
+                                    onComposition={emitTypingEvent}
+                                    onHeightChange={handleHeightChange}
+                                    handlePostError={handlePostError}
+                                    value={messageValue}
+                                    onBlur={handleBlur}
+                                    onFocus={handleFocus}
+                                    emojiEnabled={enableEmojiPicker}
+                                    createMessage={createMessage}
+                                    channelId={channelId}
+                                    id={textboxId}
+                                    ref={textboxRef!}
+                                    disabled={readOnlyChannel}
+                                    characterLimit={maxPostSize}
+                                    preview={shouldShowPreview}
+                                    badConnection={badConnection}
+                                    useChannelMentions={useChannelMentions}
+                                    rootId={postId}
+                                    onWidthChange={handleWidthChange}
+                                />
+                            </>
+                        )}
+                        
                         {attachmentPreview}
+                        
+                        {/* Mantém a lógica de formatação original da versão 9.11 */}
                         {!readOnlyChannel && (showFormattingBar || shouldShowPreview) && (
                             <TexteditorActions
                                 placement='top'
@@ -719,12 +864,14 @@ const AdvanceTextEditor = ({
                                 {showFormatJSX}
                             </TexteditorActions>
                         )}
+                        
                         {showFormattingSpacer || shouldShowPreview || attachmentPreview || isRHS ? (
                             <FormattingBarSpacer>
                                 {formattingBar}
                             </FormattingBarSpacer>
                         ) : formattingBar}
-                        {!readOnlyChannel && (
+
+                        {!readOnlyChannel && !isRecording && (
                             <TexteditorActions
                                 ref={editorActionsRef}
                                 placement='bottom'
@@ -737,6 +884,18 @@ const AdvanceTextEditor = ({
                                 <Separator/>
                                 {fileUploadJSX}
                                 {emojiPicker}
+                                
+                                {/* INJEÇÃO NIC-CHAT: Botão de Gatilho do Microfone */}
+                                <button 
+                                    type="button" 
+                                    onClick={startRecording}
+                                    className="nic-voice-trigger-btn"
+                                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', margin: '0 5px' }}
+                                    title="Gravar Mensagem de Voz"
+                                >
+                                    🎙️
+                                </button>
+                                
                                 {sendButton}
                             </TexteditorActions>
                         )}

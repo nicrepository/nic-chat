@@ -16,6 +16,8 @@ import type {GlobalState} from 'types/store';
 import PostComponent from './post_component';
 import type {Props} from './post_component';
 
+jest.mock('components/nic_voice_player/nic_voice_player', () => () => <div data-testid='nic-voice-player-mock' />);
+
 describe('PostComponent', () => {
     const currentTeam = TestHelper.getTeamMock();
     const channel = TestHelper.getChannelMock({team_id: currentTeam.id});
@@ -323,6 +325,53 @@ describe('PostComponent', () => {
                 expect(propsForRootPost.actions.selectPostFromRightHandSideSearch).not.toHaveBeenCalled();
                 expect(getHistory().push).toHaveBeenCalled();
             });
+        });
+    });
+    // ==========================================================================
+    // INJEÇÃO NIC-CHAT: Testes de Integração do Gravador de Voz
+    // ==========================================================================
+    describe('Nic-Chat: Interceptação de Mensagens de Voz', () => {
+        test('deve renderizar o NicVoicePlayer quando o metadado nic_chat_type for voice_message', () => {
+            // 1. Criamos um post falso simulando o payload gerado na Fase 2
+            const audioPost = TestHelper.getPostMock({
+                id: 'audio_post_123',
+                channel_id: channel.id,
+                file_ids: ['file_webm_123'],
+                props: {
+                    nic_chat_type: 'voice_message',
+                    nic_voice_duration: 15
+                }
+            });
+
+            const props = {
+                ...baseProps,
+                post: audioPost,
+            };
+
+            renderWithContext(<PostComponent {...props} />);
+
+            // 2. Asserção principal: O nosso player DEVE estar na tela
+            expect(screen.getByTestId('nic-voice-player-mock')).toBeInTheDocument();
+        });
+
+        test('não deve renderizar o NicVoicePlayer para arquivos comuns (ex: PDFs ou Imagens)', () => {
+            // 1. Criamos um post de anexo comum, sem o metadado da Nic-Labs
+            const normalFilePost = TestHelper.getPostMock({
+                id: 'normal_post_456',
+                channel_id: channel.id,
+                file_ids: ['file_pdf_456'],
+                props: {} // Sem a flag de segurança
+            });
+
+            const props = {
+                ...baseProps,
+                post: normalFilePost,
+            };
+
+            renderWithContext(<PostComponent {...props} />);
+
+            // 2. Asserção principal: O nosso player NÃO pode aparecer
+            expect(screen.queryByTestId('nic-voice-player-mock')).not.toBeInTheDocument();
         });
     });
 });

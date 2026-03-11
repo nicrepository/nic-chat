@@ -4,8 +4,6 @@
 import React from 'react';
 import {FormattedMessage} from 'react-intl';
 
-import type {Team} from '@mattermost/types/teams';
-
 import {Permissions} from 'mattermost-redux/constants';
 
 import ExternalLink from 'components/external_link';
@@ -21,6 +19,12 @@ import SlashCommandIcon from 'images/slash_command_icon.jpg';
 import * as Utils from 'utils/utils';
 
 import IntegrationOption from './integration_option';
+
+type Team = {
+    id: string;
+    name: string;
+    display_name: string;
+};
 
 type Props = {
     siteName: string | undefined;
@@ -38,8 +42,8 @@ export default class Integrations extends React.PureComponent <Props> {
     }
 
     updateTitle = () => {
-        const currentSiteName = this.props.siteName || '';
-        document.title = Utils.localizeMessage('admin.sidebar.integrations', 'Integrations') + ' - ' + this.props.team.display_name + ' ' + currentSiteName;
+        const siteName = this.props.siteName || 'Nic-Labs';
+        document.title = `${siteName} | ${Utils.localizeMessage('admin.sidebar.integrations', 'Integrations')}`;
     };
 
     render() {

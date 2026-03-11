@@ -3,19 +3,19 @@
 @use 'sass:color';
 
 // Color Variables
-$primary-color: #166de0;
+$primary-color: #6D28D9;
 $primary-color--hover: color.adjust($primary-color, $lightness: -10%);
-$bg--gray: rgb(245, 245, 245);
+$bg--gray: #F8FAFC;
 $white: rgb(255, 255, 255);
 $black: rgb(0, 0, 0);
-$red: rgb(214, 73, 70);
-$yellow: rgb(255, 255, 0);
-$light-gray: rgba(0, 0, 0, 0.15);
-$gray: rgba(0, 0, 0, 0.3);
-$dark-gray: rgba(0, 0, 0, 0.5);
-$link-color: rgb(35, 137, 215);
+$red: #DC2626;
+$yellow: #FACC15;
+$light-gray: rgba(15, 23, 42, 0.12);
+$gray: rgba(15, 23, 42, 0.24);
+$dark-gray: rgba(15, 23, 42, 0.5);
+$link-color: #7C3AED;
 $transparent: rgba(0, 0, 0, 0);
-$highlight-color: #fcea8d;
+$highlight-color: #DDD6FE;
 
 // Typography
 $font-weight--semibold: 600;

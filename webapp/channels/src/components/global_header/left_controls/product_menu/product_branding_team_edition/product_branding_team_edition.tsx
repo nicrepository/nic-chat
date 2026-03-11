@@ -9,6 +9,8 @@ import Logo from 'components/common/svg_images_components/logo_dark_blue_svg';
 const ProductBrandingTeamEditionContainer = styled.div`
     display: flex;
     align-items: center;
+    height: 40px;
+    overflow: visible;
 
     > * + * {
         margin-left: 8px;
@@ -16,9 +18,10 @@ const ProductBrandingTeamEditionContainer = styled.div`
 `;
 
 const StyledLogo = styled(Logo)`
-    path {
-        fill: rgba(var(--sidebar-text-rgb), 0.75);
-    }
+    color: rgba(var(--sidebar-text-rgb), 0.75);
+    display: block;
+    flex: 0 0 auto;
+    transform: translateY(1px);
 `;
 
 const Badge = styled.div`
@@ -28,7 +31,7 @@ const Badge = styled.div`
     position: relative;
     top: 1px;
     border-radius: var(--radius-s);
-    margin-left: 12px;
+    margin-left: 2px;
     background: rgba(var(--sidebar-text-rgb), 0.08);
     color: rgba(var(--sidebar-text-rgb), 0.75);
     font-family: 'Open Sans', sans-serif;
@@ -41,11 +44,8 @@ const Badge = styled.div`
 const ProductBrandingTeamEdition = (): JSX.Element => {
     return (
         <ProductBrandingTeamEditionContainer tabIndex={0}>
-            <StyledLogo
-                width={116}
-                height={20}
-            />
-            <Badge>{'FREE EDITION'}</Badge>
+            <StyledLogo width={160} height={32} />
+            {false && <Badge>{'FREE EDITION'}</Badge>}
         </ProductBrandingTeamEditionContainer>
     );
 };
