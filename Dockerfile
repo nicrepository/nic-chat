@@ -6,11 +6,17 @@ RUN apt-get update && apt-get install -y curl jq \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs build-essential
 
-# Define a pasta de trabalho e copia todo o seu repositório para dentro
+# Prevenção: Aumenta a memória do Node.js para o build do React não falhar
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# Define a pasta de trabalho e copia todo o seu código do GitHub para dentro
 WORKDIR /build
 COPY . .
 
-# Compila os binários e empacota tudo (exatamente como você fez no terminal)
+# 1. Compila o Frontend (A interface Web e o novo Player de Áudio)
+RUN cd webapp/channels && npm install && npm run build
+
+# 2. Compila o Backend e empacota tudo (Agora a pasta dist do webapp existe!)
 RUN cd server && make build && make package
 
 # ==============================================================================
@@ -19,7 +25,7 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instala apenas as dependências de sistema para o Mattermost rodar
+# Instala apenas as dependências essenciais de sistema
 RUN apt-get update && apt-get install -y \
     ca-certificates curl jq libc6 libffi-dev libgmp-dev libjpeg-dev \
     libpq-dev libssl-dev mailcap netcat-openbsd xmlsec1 tzdata \
@@ -30,10 +36,10 @@ RUN groupadd -g 2000 mattermost \
 
 WORKDIR /mattermost
 
-# A mágica acontece aqui: O Docker puxa o .tar.gz do Estágio 1, sem depender do GitHub!
+# Copia o pacote gerado com sucesso no Estágio 1
 COPY --from=builder /build/server/dist/mattermost-*.tar.gz /tmp/mattermost.tar.gz
 
-# Extrai e aplica permissões
+# Extrai e aplica permissões de segurança
 RUN tar -xvzf /tmp/mattermost.tar.gz -C /tmp \
     && cp -a /tmp/mattermost/. /mattermost/ \
     && rm -rf /tmp/mattermost* \
