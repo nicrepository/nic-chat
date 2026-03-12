@@ -14,7 +14,9 @@ WORKDIR /build
 COPY . .
 
 # 1. Compila o Frontend (A interface Web e o novo Player de Áudio)
-RUN cd webapp/channels && npm install && npm run build
+# Instalamos as dependências na raiz do webapp para respeitar os workspaces, e depois compilamos
+RUN cd webapp && npm install
+RUN cd webapp/channels && npm run build
 
 # 2. Compila o Backend e empacota tudo (Agora a pasta dist do webapp existe!)
 RUN cd server && make build && make package
