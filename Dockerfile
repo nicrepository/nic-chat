@@ -1,39 +1,44 @@
-# Usa uma imagem base limpa do Ubuntu
+# ESTÁGIO 1: Compilação (Builder)
+FROM golang:1.21 AS builder
+
+# Instala o Node.js e ferramentas necessárias para compilar o frontend
+RUN apt-get update && apt-get install -y curl jq \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs build-essential
+
+# Define a pasta de trabalho e copia todo o seu repositório para dentro
+WORKDIR /build
+COPY . .
+
+# Compila os binários e empacota tudo (exatamente como você fez no terminal)
+RUN cd server && make build && make package
+
+# ==============================================================================
+# ESTÁGIO 2: Produção (Imagem final leve)
 FROM ubuntu:22.04
 
-# Evita prompts interativos que travam a instalação no momento do build
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instala as dependências essenciais de sistema exigidas pelo Mattermost
+# Instala apenas as dependências de sistema para o Mattermost rodar
 RUN apt-get update && apt-get install -y \
     ca-certificates curl jq libc6 libffi-dev libgmp-dev libjpeg-dev \
     libpq-dev libssl-dev mailcap netcat-openbsd xmlsec1 tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-# Cria o usuário e grupo com IDs específicos exigidos (2000)
 RUN groupadd -g 2000 mattermost \
     && useradd -u 2000 -g 2000 -m -s /bin/bash mattermost
 
-# Define o diretório de trabalho apontando para o caminho correto dos volumes
 WORKDIR /mattermost
 
-# Copia o arquivo compilado da pasta dist para a imagem temporária
-# Importante: O build vai procurar esse pacote gerado previamente
-COPY dist/mattermost-*.tar.gz /tmp/mattermost.tar.gz
+# A mágica acontece aqui: O Docker puxa o .tar.gz do Estágio 1, sem depender do GitHub!
+COPY --from=builder /build/server/dist/mattermost-*.tar.gz /tmp/mattermost.tar.gz
 
-# Extrai o pacote do sistema e move o conteúdo para a pasta de trabalho oficial
+# Extrai e aplica permissões
 RUN tar -xvzf /tmp/mattermost.tar.gz -C /tmp \
     && cp -a /tmp/mattermost/. /mattermost/ \
-    && rm -rf /tmp/mattermost*
+    && rm -rf /tmp/mattermost* \
+    && chown -R mattermost:mattermost /mattermost
 
-# Aplica as permissões restritas para o usuário correto
-RUN chown -R mattermost:mattermost /mattermost
-
-# Troca para o usuário sem privilégios de root por segurança
 USER mattermost
-
-# Expõe a porta padrão
 EXPOSE 8065
-
-# Inicia o binário do servidor
 CMD ["./bin/mattermost"]
