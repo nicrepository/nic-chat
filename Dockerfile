@@ -38,8 +38,8 @@ RUN groupadd -g 2000 mattermost \
 
 WORKDIR /mattermost
 
-# Copia o pacote gerado com sucesso no Estágio 1
-COPY --from=builder /build/server/dist/mattermost-*.tar.gz /tmp/mattermost.tar.gz
+# Copia estritamente o pacote gerado para Linux AMD64
+COPY --from=builder /build/server/dist/*linux-amd64.tar.gz /tmp/mattermost.tar.gz
 
 # Extrai e aplica permissões de segurança
 RUN tar -xvzf /tmp/mattermost.tar.gz -C /tmp \
