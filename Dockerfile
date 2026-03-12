@@ -1,8 +1,8 @@
 # ESTÁGIO 1: Compilação (Builder)
 FROM golang:1.21 AS builder
 
-# Instala o Node.js e ferramentas necessárias para compilar o frontend
-RUN apt-get update && apt-get install -y curl jq \
+# Instala o Node.js e ferramentas necessárias (incluindo o zip) para compilar tudo
+RUN apt-get update && apt-get install -y curl jq zip unzip \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs build-essential
 
